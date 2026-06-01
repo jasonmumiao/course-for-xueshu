@@ -231,10 +231,10 @@ function selectability(course) {
   const hasTime = courseSlots(course).length > 0;
   const conflicts = selectedCourses().some((item) => item.kcbh !== course.kcbh && coursesConflict(course, item));
 
-  if (selected) return { selected, conflicts, full, hasTime, label: conflicts ? "已加入，冲突" : "已加入" };
-  if (full) return { selected, conflicts, full, hasTime, label: "已满" };
-  if (conflicts) return { selected, conflicts, full, hasTime, label: "时间冲突" };
-  if (!hasTime) return { selected, conflicts, full, hasTime, label: "时间未知" };
+  if (selected) return { selected, conflicts, full, hasTime, label: conflicts ? "已加入，冲突" : full ? "已加入，已满" : "已加入" };
+  if (conflicts) return { selected, conflicts, full, hasTime, label: full ? "时间冲突，已满" : "时间冲突" };
+  if (!hasTime) return { selected, conflicts, full, hasTime, label: full ? "时间未知，已满" : "时间未知" };
+  if (full) return { selected, conflicts, full, hasTime, label: "已满可加入" };
   return { selected, conflicts, full, hasTime, label: "可加入" };
 }
 
@@ -530,7 +530,6 @@ function renderRow(course) {
   const selectClass = selection.conflicts ? "conflict" : selection.selected ? "selected" : selection.full ? "full" : selection.hasTime ? "clear" : "unknown";
   const selectButtonClass = selection.conflicts ? "danger" : selection.selected ? "secondary" : "secondary";
   const selectButtonText = selection.selected ? "移出待选" : selection.conflicts ? "冲突，仍加入" : "加入待选";
-  const selectDisabled = selection.full && !selection.selected ? "disabled" : "";
 
   return `
     <tr>
@@ -553,7 +552,7 @@ function renderRow(course) {
       <td class="${statusClass}">${escapeHtml(updatedAt)}</td>
       <td>
         <div class="row-actions">
-          <button class="${selectButtonClass} pending-toggle" data-code="${escapeHtml(course.kcbh)}" ${selectDisabled}>${escapeHtml(selectButtonText)}</button>
+          <button class="${selectButtonClass} pending-toggle" data-code="${escapeHtml(course.kcbh)}">${escapeHtml(selectButtonText)}</button>
           <button class="secondary row-refresh" data-code="${escapeHtml(course.kcbh)}">刷新</button>
         </div>
       </td>
