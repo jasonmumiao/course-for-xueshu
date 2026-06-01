@@ -19,6 +19,7 @@ const state = {
 
 const app = document.getElementById("app");
 const SCHOOL_PLAN_URL = "https://yjsjy.uestc.edu.cn/pyxx/pygl/pyjhtj/index2?nd=2025&kclb=&kcbh=%E7%A0%94%E7%A9%B6%E7%94%9F&sfbfa=1";
+const GITHUB_REPO_URL = "https://github.com/jasonmumiao/course-for-xueshu";
 
 function escapeHtml(value) {
   return String(value == null ? "" : value)
@@ -346,7 +347,10 @@ function render() {
             <h1>学术交流月余量看板</h1>
             <div class="muted">课程 ${state.courses.length} 门；快照 ${escapeHtml(cacheLabel)}；${escapeHtml(storageLabel)}</div>
           </div>
-          <button id="refreshAll" class="primary-action">刷新全部</button>
+          <div class="header-actions">
+            <a class="repo-link" href="${GITHUB_REPO_URL}" target="_blank" rel="noreferrer">GitHub 仓库</a>
+            <button id="refreshAll" class="primary-action">刷新全部</button>
+          </div>
         </div>
 
         <section class="guide">

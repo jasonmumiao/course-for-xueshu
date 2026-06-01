@@ -158,6 +158,33 @@ textarea {
   flex-wrap: wrap;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.repo-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  border: 1px solid #b8cce2;
+  border-radius: 6px;
+  background: #fff;
+  color: var(--accent);
+  padding: 0 12px;
+  text-decoration: none;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.repo-link:hover {
+  background: var(--mark);
+}
+
 h1 {
   margin: 0;
   font-size: 20px;
@@ -743,6 +770,9 @@ tbody tr:hover {
   .button-row button,
   .credential-actions button,
   .controls button,
+  .header-actions,
+  .header-actions button,
+  .repo-link,
   .search-refresh button,
   .pending-panel button,
   .modal-actions button {
