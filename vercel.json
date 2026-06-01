@@ -1,0 +1,24 @@
+{
+  "functions": {
+    "api/refresh-pair.mjs": {
+      "maxDuration": 60
+    },
+    "api/restore.mjs": {
+      "maxDuration": 60
+    },
+    "api/session.mjs": {
+      "maxDuration": 30
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    }
+  ]
+}
