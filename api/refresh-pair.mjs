@@ -1,4 +1,4 @@
-import { assertAuth, handleApiError, readJson, requireSchoolCookie, sendJson } from "../lib/auth.mjs";
+import { assertConfiguredAuth, handleApiError, readJson, requireSchoolCookie, sendJson } from "../lib/auth.mjs";
 import { mergeQuotaResults } from "../lib/cache-store.mjs";
 import { getCoursesFromCodes, normalizeCourseCodes } from "../lib/courses.mjs";
 import { refreshCourses, requestDelayMs, setPlanCourses } from "../lib/school-client.mjs";
@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   let body = {};
 
   try {
-    assertAuth(req);
+    assertConfiguredAuth(req);
     const cookie = requireSchoolCookie(req);
     body = await readJson(req);
     const codes = normalizeCourseCodes(body.codes);

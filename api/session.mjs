@@ -1,10 +1,10 @@
-import { assertAuth, getSchoolCookie, handleApiError, sendJson } from "../lib/auth.mjs";
+import { assertConfiguredAuth, getSchoolCookie, handleApiError, sendJson } from "../lib/auth.mjs";
 import { defaultRestoreCodes } from "../lib/courses.mjs";
 import { detectLcid, getSelectedExchangeCourses } from "../lib/school-client.mjs";
 
 export default async function handler(req, res) {
   try {
-    assertAuth(req);
+    assertConfiguredAuth(req);
     const cookie = getSchoolCookie(req);
     if (!cookie) {
       sendJson(res, 200, {

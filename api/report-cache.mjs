@@ -1,15 +1,15 @@
-import { assertAuth, handleApiError, readJson, sendJson } from "../lib/auth.mjs";
+import { assertReportAuth, assertSchoolOrigin, handleApiError, readJson, sendJson, setSchoolCors } from "../lib/auth.mjs";
 import { mergeQuotaResults, readQuotaCache, storageInfo } from "../lib/cache-store.mjs";
 import { getCourse } from "../lib/courses.mjs";
 
-function setCors(res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+function setCors(req, res) {
+  setSchoolCors(req, res);
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
 export default async function handler(req, res) {
-  setCors(res);
+  setCors(req, res);
   if (req.method === "OPTIONS") {
     res.statusCode = 204;
     res.end();
@@ -21,8 +21,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    assertAuth(req);
+    assertSchoolOrigin(req);
     const body = await readJson(req);
+    assertReportAuth(req, body);
+
     if (body?.source !== "uestc-course-quota-report") {
       throw Object.assign(new Error("无效的上报来源"), { status: 400 });
     }

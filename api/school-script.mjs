@@ -1,10 +1,11 @@
 import { courses, getCourse, normalizeCourseCodes } from "../lib/courses.mjs";
+import { createReportAuthQuery, setSchoolCors } from "../lib/auth.mjs";
 
-function sendJs(res, source) {
+function sendJs(req, res, source) {
   res.statusCode = 200;
   res.setHeader("Content-Type", "application/javascript; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  setSchoolCors(req, res);
   res.end(source);
 }
 
@@ -17,7 +18,6 @@ function appOrigin(req) {
 function parseConfig(req) {
   const url = new URL(req.url, appOrigin(req));
   const mode = url.searchParams.get("mode") || "all";
-  const token = url.searchParams.get("token") || process.env.APP_TOKEN || "";
   const origin = appOrigin(req);
   const codes = normalizeCourseCodes(url.searchParams.get("codes") || "");
   const restoreCodes = normalizeCourseCodes(url.searchParams.get("restore") || "");
@@ -25,7 +25,8 @@ function parseConfig(req) {
   const appUrl = url.searchParams.get("appUrl") || origin + "/";
 
   const targetCodes = mode === "single" ? codes.filter((code) => getCourse(code)) : [];
-  const reportUrl = `${origin}/api/report-cache${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+  const reportScope = mode === "single" ? targetCodes.join(",") : "all";
+  const reportUrl = `${origin}/api/report-cache${createReportAuthQuery(reportScope)}`;
 
   return {
     mode,
@@ -354,8 +355,8 @@ function runnerSource(config) {
 
 export default async function handler(req, res) {
   try {
-    sendJs(res, runnerSource(parseConfig(req)));
+    sendJs(req, res, runnerSource(parseConfig(req)));
   } catch (error) {
-    sendJs(res, `alert(${JSON.stringify("加载脚本失败：" + (error?.message || String(error)))})`);
+    sendJs(req, res, `alert(${JSON.stringify("加载脚本失败：" + (error?.message || String(error)))})`);
   }
 }
