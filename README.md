@@ -19,6 +19,7 @@
 - 支持按类别、余量状态、冲突状态筛选。
 - 支持点击表头按课程、总量、预选、余量、更新时间排序。
 - 支持本地模拟待选课程，并根据已刷新到的上课时间判断是否冲突。
+- 支持点击课程名展开留言区，给具体课程留下选课提醒或经验。
 - 支持导出 CSV。
 
 ## 使用方式
@@ -54,6 +55,27 @@
 
 待选列表只保存在当前浏览器，不会提交到学校系统，也不会影响培养方案。
 
+## 课程留言
+
+点击表格里的课程名，可以展开这门课的留言区。留言会公开显示昵称、内容、时间和匿名来源编号。
+
+出于浏览器能力限制，页面无法采集真实 MAC 地址。服务端会私有留存访问 IP、匿名 IP 指纹、粗略 IP 段和 User-Agent，用于限制刷屏和排查滥用；公开页面不会展示真实 IP。
+
+## 共享与本地状态
+
+所有同学共享的数据只有：
+
+- 课程余量快照，包括总量、预选人数、余量、教师、时间地点等。
+- 每门课程下面的公开留言内容。
+
+只保存在每个人自己浏览器里的数据包括：
+
+- 待选课程列表。
+- 搜索关键词。
+- 类别筛选、余量状态筛选、冲突状态筛选。
+- 表格排序字段和排序方向。
+- 生成书签时选择的刷新间隔。
+
 ## 安全边界
 
 这个项目的设计目标是“不收集、不保存同学的学校登录 Token/Cookie”：
@@ -64,6 +86,7 @@
 - 看板前端不会要求粘贴学校 Token，也不会把学校 Cookie 写入 `localStorage`、URL 或仓库。
 - Vercel Blob / KV / APP_TOKEN 等服务端环境变量不会提交到 GitHub，也不会写入静态前端文件。
 - 如果配置了 `APP_TOKEN`，学校脚本拿到的是短期 HMAC 回传签名，不是原始 `APP_TOKEN`。
+- 留言功能无法采集 MAC 地址；服务端私有留存访问 IP 和匿名指纹，公开页面只展示匿名来源编号，不展示真实 IP。
 
 需要注意的是：公开看板的缓存是大家共同刷新的公共快照，不适合承载个人隐私信息。`APP_TOKEN` 用于保护回传接口，应该配置在 Vercel 环境变量里，不要写进代码、README 或浏览器控制台截图。如果不配置 `APP_TOKEN`，回传接口会主要依赖学校页面来源校验，防护强度更低。
 
@@ -73,6 +96,7 @@
 
 ```bash
 APP_TOKEN=
+COMMENT_SALT=
 SCHOOL_ORIGIN=https://yjsjy.uestc.edu.cn
 REQUEST_DELAY_MS=300
 REPORT_TOKEN_TTL_MS=21600000
@@ -84,6 +108,8 @@ BLOB_READ_WRITE_TOKEN=
 强烈建议配置 Vercel Blob 的 `BLOB_READ_WRITE_TOKEN`，或配置 `KV_REST_API_URL` 和 `KV_REST_API_TOKEN`，用于持久保存上一次余量快照。没有持久存储时会退回临时 `/tmp` 缓存，Vercel 换实例后可能丢失。
 
 `REPORT_TOKEN_TTL_MS` 是学校脚本回传签名的有效期，默认 6 小时。
+
+`COMMENT_SALT` 用于生成留言来源的匿名指纹。建议配置一个随机字符串；如果不配置，会回退使用 `APP_TOKEN`，再不配置则使用项目默认盐值。
 
 项目已安装 `@vercel/analytics`，静态页面通过 Vercel Web Analytics 脚本上报访问数据。需要在 Vercel Dashboard 中为项目开启 Web Analytics。
 
@@ -110,6 +136,7 @@ npm run dev
 
 - `GET /api/courses`：课程目录。
 - `GET /api/cache`：公开快照。
+- `GET /api/comments`、`POST /api/comments`：课程留言读取与提交。
 - `GET /api/school-script`：生成学校页面执行脚本。
 - `POST /api/report-cache`：学校页面脚本回传余量结果。
 - `POST /api/refresh-pair`、`POST /api/restore`、`GET /api/session`：旧版后端代请求备用接口，需要配置 `APP_TOKEN` 后才会启用。

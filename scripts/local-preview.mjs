@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import cacheHandler from "../api/cache.mjs";
+import commentsHandler from "../api/comments.mjs";
 import coursesHandler from "../api/courses.mjs";
 import refreshPairHandler from "../api/refresh-pair.mjs";
 import reportCacheHandler from "../api/report-cache.mjs";
@@ -18,6 +19,7 @@ const port = Number(process.env.PORT || "4182");
 
 const apiHandlers = new Map([
   ["/api/cache", cacheHandler],
+  ["/api/comments", commentsHandler],
   ["/api/courses", coursesHandler],
   ["/api/refresh-pair", refreshPairHandler],
   ["/api/report-cache", reportCacheHandler],

@@ -2,16 +2,18 @@ const state = {
   delayMs: Number(localStorage.getItem("delayMs") || "300"),
   cacheUpdatedAt: "",
   storage: null,
-  query: "",
-  category: "all",
-  availability: "all",
-  conflictFilter: "all",
+  query: localStorage.getItem("query") || "",
+  category: localStorage.getItem("category") || "all",
+  availability: localStorage.getItem("availability") || "all",
+  conflictFilter: localStorage.getItem("conflictFilter") || "all",
   sortKey: localStorage.getItem("sortKey") || "remaining",
   sortDir: localStorage.getItem("sortDir") || "desc",
   pendingCodes: JSON.parse(localStorage.getItem("pendingCourseCodes") || "[]"),
   courses: [],
   categories: [],
   results: new Map(),
+  comments: new Map(),
+  expandedCommentCode: "",
   message: "",
   error: "",
   pendingRefresh: null,
@@ -32,6 +34,10 @@ function escapeHtml(value) {
 
 function saveSettings() {
   localStorage.setItem("delayMs", String(state.delayMs));
+  localStorage.setItem("query", state.query);
+  localStorage.setItem("category", state.category);
+  localStorage.setItem("availability", state.availability);
+  localStorage.setItem("conflictFilter", state.conflictFilter);
   localStorage.setItem("sortKey", state.sortKey);
   localStorage.setItem("sortDir", state.sortDir);
   localStorage.setItem("pendingCourseCodes", JSON.stringify(state.pendingCodes));
@@ -154,6 +160,14 @@ function statusText(result) {
 
 function firstQuota(result) {
   return result?.rows?.[0] || null;
+}
+
+function commentsFor(code) {
+  return state.comments.get(code) || [];
+}
+
+function commentCount(code) {
+  return commentsFor(code).length;
 }
 
 function courseByCode(code) {
@@ -524,6 +538,8 @@ function renderRow(course) {
   const result = state.results.get(course.kcbh);
   const quota = firstQuota(result);
   const selection = selectability(course);
+  const count = commentCount(course.kcbh);
+  const expanded = state.expandedCommentCode === course.kcbh;
   const remainingClass = quota?.remaining == null ? "" : quota.remaining > 0 ? "ok" : "bad";
   const statusClass = result?.status === "ok" ? "ok" : result?.status === "error" ? "bad" : result?.status === "missing" ? "warn" : "";
   const updatedAt = result?.updatedAt ? new Date(result.updatedAt).toLocaleString() : "--";
@@ -532,9 +548,12 @@ function renderRow(course) {
   const selectButtonText = selection.selected ? "移出待选" : selection.conflicts ? "冲突，仍加入" : "加入待选";
 
   return `
-    <tr>
+    <tr class="${expanded ? "expanded-course" : ""}">
       <td class="course">
-        <div class="course-title">${escapeHtml(course.kcmc)}</div>
+        <button class="course-title-button" data-comments-toggle="${escapeHtml(course.kcbh)}" aria-expanded="${expanded ? "true" : "false"}">
+          <span>${escapeHtml(course.kcmc)}</span>
+          <span class="comment-badge">${count ? `${count} 条留言` : "留言"}</span>
+        </button>
         <div class="small">${escapeHtml(course.kcbh)}</div>
         <div class="chip-row">
           <span class="chip">${escapeHtml(course.lb || "未分类")}</span>
@@ -557,6 +576,48 @@ function renderRow(course) {
         </div>
       </td>
     </tr>
+    ${expanded ? renderCommentRow(course) : ""}
+  `;
+}
+
+function renderCommentRow(course) {
+  const items = commentsFor(course.kcbh);
+  return `
+    <tr class="comment-row">
+      <td colspan="10">
+        <section class="comment-panel">
+          <div class="comment-head">
+            <div>
+              <b>${escapeHtml(course.kcmc)}的留言</b>
+              <div class="muted">服务端保留访问 IP 和匿名指纹；浏览器网页无法获取 MAC 地址。</div>
+            </div>
+            <span class="comment-count">${items.length} 条</span>
+          </div>
+          <div class="comment-list">
+            ${items.length ? items.map(renderComment).join("") : `<div class="empty-comment">还没有留言</div>`}
+          </div>
+          <form class="comment-form" data-comment-form="${escapeHtml(course.kcbh)}">
+            <input name="author" maxlength="20" placeholder="昵称，可选">
+            <textarea name="message" maxlength="300" required placeholder="留言内容，最多 300 字"></textarea>
+            <button type="submit">提交留言</button>
+          </form>
+        </section>
+      </td>
+    </tr>
+  `;
+}
+
+function renderComment(item) {
+  const createdAt = item.createdAt ? new Date(item.createdAt).toLocaleString() : "";
+  return `
+    <article class="comment-item">
+      <div class="comment-meta">
+        <b>${escapeHtml(item.author || "匿名同学")}</b>
+        <span>${escapeHtml(item.visitorLabel || "匿名来源")}</span>
+        <time>${escapeHtml(createdAt)}</time>
+      </div>
+      <p>${escapeHtml(item.message || "")}</p>
+    </article>
   `;
 }
 
@@ -567,18 +628,22 @@ function bindEvents() {
   set("refreshSearch", "click", refreshSearchedCourse);
   set("query", "input", (event) => {
     state.query = event.target.value;
+    saveSettings();
     render();
   });
   set("category", "change", (event) => {
     state.category = event.target.value;
+    saveSettings();
     render();
   });
   set("availability", "change", (event) => {
     state.availability = event.target.value;
+    saveSettings();
     render();
   });
   set("conflictFilter", "change", (event) => {
     state.conflictFilter = event.target.value;
+    saveSettings();
     render();
   });
   set("export", "click", exportCsv);
@@ -615,12 +680,49 @@ function bindEvents() {
   document.querySelectorAll(".row-refresh").forEach((button) => {
     button.addEventListener("click", () => openRefreshDialog("single", [button.dataset.code]));
   });
+  document.querySelectorAll("[data-comments-toggle]").forEach((button) => {
+    button.addEventListener("click", () => toggleComments(button.dataset.commentsToggle));
+  });
+  document.querySelectorAll("[data-comment-form]").forEach((form) => {
+    form.addEventListener("submit", (event) => submitComment(event, form));
+  });
   document.querySelectorAll(".pending-toggle").forEach((button) => {
     button.addEventListener("click", () => togglePendingCourse(button.dataset.code));
   });
   document.querySelectorAll("[data-remove-pending]").forEach((button) => {
     button.addEventListener("click", () => removePendingCourse(button.dataset.removePending));
   });
+}
+
+function toggleComments(code) {
+  state.expandedCommentCode = state.expandedCommentCode === code ? "" : code;
+  state.message = "";
+  state.error = "";
+  render();
+}
+
+async function submitComment(event, form) {
+  event.preventDefault();
+  const courseCode = form.dataset.commentForm;
+  const data = new FormData(form);
+  try {
+    const result = await api("/api/comments", {
+      method: "POST",
+      body: {
+        courseCode,
+        author: data.get("author"),
+        message: data.get("message"),
+      },
+    });
+    state.comments.set(courseCode, result.comments || []);
+    state.message = "留言已提交";
+    state.error = "";
+    render();
+  } catch (error) {
+    state.error = error.message;
+    state.message = "";
+    render();
+  }
 }
 
 function togglePendingCourse(code) {
@@ -672,6 +774,9 @@ async function loadCourses() {
   const data = await api("/api/courses");
   state.courses = data.courses || [];
   state.categories = data.categories || [];
+  if (state.category !== "all" && !state.categories.includes(state.category)) state.category = "all";
+  if (!["all", "hasRemain", "full", "unknown", "error"].includes(state.availability)) state.availability = "all";
+  if (!["all", "clear", "conflict"].includes(state.conflictFilter)) state.conflictFilter = "all";
   state.pendingCodes = uniquePendingCodes(state.pendingCodes);
   saveSettings();
 }
@@ -684,6 +789,15 @@ async function loadCache() {
   const results = data.cache?.results || {};
   for (const [code, result] of Object.entries(results)) {
     state.results.set(code, result);
+  }
+}
+
+async function loadComments() {
+  const data = await api("/api/comments?_=" + Date.now());
+  state.comments = new Map();
+  const comments = data.comments?.comments || {};
+  for (const [code, items] of Object.entries(comments)) {
+    state.comments.set(code, Array.isArray(items) ? items : []);
   }
 }
 
@@ -716,6 +830,7 @@ async function boot() {
   try {
     await loadCourses();
     await loadCache();
+    await loadComments();
     render();
     state.message = state.cacheUpdatedAt
       ? "当前展示的是上一次刷新快照。要更新数据，请点击刷新入口并按弹窗说明拖放书签。"

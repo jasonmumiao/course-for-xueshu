@@ -9,7 +9,7 @@
     "deploy": "vercel --prod",
     "deploy:preview": "vercel",
     "vc": "vercel",
-    "check": "node --check api/cache.mjs && node --check api/courses.mjs && node --check api/report-cache.mjs && node --check api/school-script.mjs && node --check api/session.mjs && node --check api/refresh-pair.mjs && node --check api/restore.mjs && node --check lib/auth.mjs && node --check lib/cache-store.mjs && node --check lib/courses.mjs && node --check lib/school-client.mjs && node --check scripts/local-preview.mjs && node --check public/app.js"
+    "check": "node --check api/cache.mjs && node --check api/comments.mjs && node --check api/courses.mjs && node --check api/report-cache.mjs && node --check api/school-script.mjs && node --check api/session.mjs && node --check api/refresh-pair.mjs && node --check api/restore.mjs && node --check lib/auth.mjs && node --check lib/cache-store.mjs && node --check lib/comment-store.mjs && node --check lib/courses.mjs && node --check lib/school-client.mjs && node --check scripts/local-preview.mjs && node --check public/app.js"
   },
   "devDependencies": {
     "vercel": "latest"
