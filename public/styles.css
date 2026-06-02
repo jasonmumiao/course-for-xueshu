@@ -255,7 +255,7 @@ h1 {
 }
 
 .filters {
-  grid-template-columns: 150px 150px 150px auto;
+  grid-template-columns: 150px 150px 150px auto auto;
 }
 
 .pending-panel {

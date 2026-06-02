@@ -22,6 +22,8 @@ const state = {
 const app = document.getElementById("app");
 const SCHOOL_PLAN_URL = "https://yjsjy.uestc.edu.cn/pyxx/pygl/pyjhtj/index2?nd=2025&kclb=&kcbh=%E7%A0%94%E7%A9%B6%E7%94%9F&sfbfa=1";
 const GITHUB_REPO_URL = "https://github.com/jasonmumiao/course-for-xueshu";
+let queryComposing = false;
+let queryRenderTimer = 0;
 
 function escapeHtml(value) {
   return String(value == null ? "" : value)
@@ -41,6 +43,26 @@ function saveSettings() {
   localStorage.setItem("sortKey", state.sortKey);
   localStorage.setItem("sortDir", state.sortDir);
   localStorage.setItem("pendingCourseCodes", JSON.stringify(state.pendingCodes));
+}
+
+function restoreInputFocus(id, selectionStart, selectionEnd) {
+  requestAnimationFrame(() => {
+    const input = document.getElementById(id);
+    if (!input) return;
+    input.focus({ preventScroll: true });
+    if (typeof selectionStart === "number" && typeof selectionEnd === "number") {
+      input.setSelectionRange(selectionStart, selectionEnd);
+    }
+  });
+}
+
+function scheduleQueryRender(selectionStart, selectionEnd) {
+  clearTimeout(queryRenderTimer);
+  queryRenderTimer = setTimeout(() => {
+    queryRenderTimer = 0;
+    render();
+    restoreInputFocus("query", selectionStart, selectionEnd);
+  }, 120);
 }
 
 async function copyText(text) {
@@ -408,6 +430,7 @@ function render() {
               <option value="clear" ${state.conflictFilter === "clear" ? "selected" : ""}>不冲突</option>
               <option value="conflict" ${state.conflictFilter === "conflict" ? "selected" : ""}>有冲突</option>
             </select>
+            <button id="clearFilters" class="secondary">清空筛选</button>
             <button id="export" class="secondary">导出 CSV</button>
           </div>
 
@@ -626,10 +649,22 @@ function bindEvents() {
 
   set("refreshAll", "click", () => openRefreshDialog("all"));
   set("refreshSearch", "click", refreshSearchedCourse);
-  set("query", "input", (event) => {
+  set("query", "compositionstart", () => {
+    queryComposing = true;
+  });
+  set("query", "compositionend", (event) => {
+    queryComposing = false;
     state.query = event.target.value;
     saveSettings();
     render();
+    restoreInputFocus("query", event.target.selectionStart, event.target.selectionEnd);
+  });
+  set("query", "input", (event) => {
+    state.query = event.target.value;
+    saveSettings();
+    if (!queryComposing) {
+      scheduleQueryRender(event.target.selectionStart, event.target.selectionEnd);
+    }
   });
   set("category", "change", (event) => {
     state.category = event.target.value;
@@ -647,6 +682,7 @@ function bindEvents() {
     render();
   });
   set("export", "click", exportCsv);
+  set("clearFilters", "click", clearSearchAndFilters);
   set("clearPending", "click", clearPendingCourses);
   set("closeRefreshDialog", "click", closeRefreshDialog);
   set("copyBookmarklet", "click", copyPendingBookmarklet);
@@ -692,6 +728,19 @@ function bindEvents() {
   document.querySelectorAll("[data-remove-pending]").forEach((button) => {
     button.addEventListener("click", () => removePendingCourse(button.dataset.removePending));
   });
+}
+
+function clearSearchAndFilters() {
+  clearTimeout(queryRenderTimer);
+  queryRenderTimer = 0;
+  state.query = "";
+  state.category = "all";
+  state.availability = "all";
+  state.conflictFilter = "all";
+  state.message = "已清空搜索和筛选条件。";
+  state.error = "";
+  saveSettings();
+  render();
 }
 
 function toggleComments(code) {
