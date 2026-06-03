@@ -332,25 +332,6 @@ h1 {
   max-height: 110px;
 }
 
-.delay-control {
-  display: grid;
-  grid-template-columns: minmax(70px, 1fr) auto;
-  gap: 6px;
-  align-items: center;
-}
-
-.delay-presets {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.delay-presets button {
-  height: 30px;
-  padding: 0 10px;
-}
-
 .bookmark-row {
   display: flex;
   align-items: center;
@@ -534,13 +515,6 @@ label {
 .modal-steps span {
   font-size: 12px;
   color: #344054;
-}
-
-.modal-grid {
-  display: grid;
-  grid-template-columns: minmax(160px, 0.4fr) minmax(280px, 1fr);
-  gap: 12px;
-  align-items: end;
 }
 
 .bookmark-drop {
@@ -850,7 +824,6 @@ tbody tr:hover {
   .search-refresh,
   .comment-form,
   .pending-panel,
-  .modal-grid,
   .bookmark-drop {
     grid-template-columns: 1fr 1fr;
   }
@@ -869,7 +842,6 @@ tbody tr:hover {
   .comment-form,
   .pending-panel,
   .modal-steps,
-  .modal-grid,
   .bookmark-drop {
     grid-template-columns: 1fr;
   }

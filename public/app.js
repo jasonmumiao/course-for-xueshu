@@ -1,5 +1,4 @@
 const state = {
-  delayMs: Number(localStorage.getItem("delayMs") || "300"),
   cacheUpdatedAt: "",
   storage: null,
   query: localStorage.getItem("query") || "",
@@ -20,7 +19,7 @@ const state = {
 };
 
 const app = document.getElementById("app");
-const SCHOOL_PLAN_URL = "https://yjsjy.uestc.edu.cn/pyxx/pygl/pyjhtj/index2?nd=2025&kclb=&kcbh=%E7%A0%94%E7%A9%B6%E7%94%9F&sfbfa=1";
+const SCHOOL_REFRESH_URL = "https://yjsjy.uestc.edu.cn/pyxx/pygl/pyjhxk/kbcx";
 const GITHUB_REPO_URL = "https://github.com/jasonmumiao/course-for-xueshu";
 let queryComposing = false;
 let queryRenderTimer = 0;
@@ -35,7 +34,6 @@ function escapeHtml(value) {
 }
 
 function saveSettings() {
-  localStorage.setItem("delayMs", String(state.delayMs));
   localStorage.setItem("query", state.query);
   localStorage.setItem("category", state.category);
   localStorage.setItem("availability", state.availability);
@@ -88,23 +86,22 @@ function appUrl() {
   return window.location.origin + window.location.pathname;
 }
 
-function buildSchoolScriptUrl(mode, codes = [], delayMs = state.delayMs) {
+function buildSchoolScriptUrl(mode, codes = []) {
   const url = new URL("/api/school-script", window.location.origin);
   url.searchParams.set("mode", mode);
   if (codes.length) url.searchParams.set("codes", codes.join(","));
-  url.searchParams.set("delayMs", String(delayMs));
   url.searchParams.set("appUrl", appUrl());
   return url.toString();
 }
 
-function buildSchoolLoaderScript(mode, codes = [], delayMs = state.delayMs) {
-  const scriptUrl = buildSchoolScriptUrl(mode, codes, delayMs);
+function buildSchoolLoaderScript(mode, codes = []) {
+  const scriptUrl = buildSchoolScriptUrl(mode, codes);
   const label = mode === "all" ? "全量刷新" : "单门刷新";
-  return `(async()=>{if(!/(^|\\.)yjsjy\\.uestc\\.edu\\.cn$/i.test(location.hostname)){alert("请先打开学校培养方案页面，再点击这个书签。");return}const u=${JSON.stringify(scriptUrl)};alert(${JSON.stringify(label + "脚本开始加载。稍后会出现进度面板，请不要关闭页面。")});const byScript=(msg)=>{const old=document.getElementById("uestc-quota-remote-script");if(old)old.remove();const s=document.createElement("script");s.id="uestc-quota-remote-script";s.src=u+(u.includes("?")?"&":"?")+"_t="+Date.now();s.async=true;s.onerror=()=>alert("脚本加载失败："+(msg||"请重新生成书签后再试"));(document.head||document.documentElement).appendChild(s)};try{const r=await fetch(u,{cache:"no-store"});const c=await r.text();if(!r.ok)throw new Error("HTTP "+r.status+" "+c.slice(0,80));try{(0,eval)(c)}catch(e){console.warn("[学术交流月余量] eval 被拦截，改用 script 标签加载",e);byScript(e.message)}}catch(e){console.warn("[学术交流月余量] fetch 失败，改用 script 标签加载",e);byScript(e.message)}})();`;
+  return `(async()=>{if(!/(^|\\.)yjsjy\\.uestc\\.edu\\.cn$/i.test(location.hostname)){alert("请先打开学校课程余量页面，再点击这个书签。");return}const u=${JSON.stringify(scriptUrl)};alert(${JSON.stringify(label + "脚本开始加载。它会直接读取课程余量页面，不会修改培养方案。")});const byScript=(msg)=>{const old=document.getElementById("uestc-quota-remote-script");if(old)old.remove();const s=document.createElement("script");s.id="uestc-quota-remote-script";s.src=u+(u.includes("?")?"&":"?")+"_t="+Date.now();s.async=true;s.onerror=()=>alert("脚本加载失败："+(msg||"请重新生成书签后再试"));(document.head||document.documentElement).appendChild(s)};try{const r=await fetch(u,{cache:"no-store"});const c=await r.text();if(!r.ok)throw new Error("HTTP "+r.status+" "+c.slice(0,80));try{(0,eval)(c)}catch(e){console.warn("[学术交流月余量] eval 被拦截，改用 script 标签加载",e);byScript(e.message)}}catch(e){console.warn("[学术交流月余量] fetch 失败，改用 script 标签加载",e);byScript(e.message)}})();`;
 }
 
-function bookmarkletHref(mode, codes = [], delayMs = state.delayMs) {
-  return "javascript:" + buildSchoolLoaderScript(mode, codes, delayMs);
+function bookmarkletHref(mode, codes = []) {
+  return "javascript:" + buildSchoolLoaderScript(mode, codes);
 }
 
 function refreshLabel(mode, codes = []) {
@@ -149,8 +146,8 @@ function closeRefreshDialog() {
 
 function goSchoolAfterBookmark() {
   if (!state.pendingRefresh) return;
-  window.open(SCHOOL_PLAN_URL, "_blank");
-  state.message = "学校页面已打开。登录后点击你刚拖好的书签，刷新结果会回传到当前看板。";
+  window.open(SCHOOL_REFRESH_URL, "_blank");
+  state.message = "学校课程余量页面已打开。登录后点击你刚拖好的书签，刷新结果会回传到当前看板。";
   render();
 }
 
@@ -400,7 +397,7 @@ function render() {
           </div>
           <div>
             <b>3. 拖书签运行</b>
-            <span>弹窗中设置间隔，拖好书签再跳转学校页面。</span>
+            <span>拖好书签后跳转学校课程余量页面。</span>
           </div>
         </section>
 
@@ -485,38 +482,22 @@ function renderRefreshModal(modal) {
         <div class="modal-head">
           <div>
             <h2>${escapeHtml(modal.label)}</h2>
-            <div class="muted">先生成并拖放书签，再跳转学校页面运行。</div>
+            <div class="muted">先生成并拖放书签，再跳转学校课程余量页面运行。</div>
           </div>
           <button id="closeRefreshDialog" class="icon-btn" aria-label="关闭">×</button>
         </div>
 
         <div class="modal-steps">
-          <div><b>1</b><span>选择请求间隔</span></div>
-          <div><b>2</b><span>拖动书签按钮到浏览器书签栏</span></div>
-          <div><b>3</b><span>确认跳转，到学校页面点击书签</span></div>
-        </div>
-
-        <div class="modal-grid">
-          <label>刷新间隔
-            <div class="delay-control">
-              <input id="modalDelayMs" type="number" min="0" step="50" value="${escapeHtml(state.delayMs)}">
-              <span class="muted">ms</span>
-            </div>
-          </label>
-          <div class="delay-presets">
-            <button class="secondary modal-delay-preset" data-delay="100">100ms</button>
-            <button class="secondary modal-delay-preset" data-delay="200">200ms</button>
-            <button class="secondary modal-delay-preset" data-delay="300">300ms</button>
-            <button class="secondary modal-delay-preset" data-delay="500">500ms</button>
-            <button class="secondary modal-delay-preset" data-delay="900">900ms</button>
-          </div>
+          <div><b>1</b><span>拖动书签按钮到浏览器书签栏</span></div>
+          <div><b>2</b><span>确认跳转到学校课程余量页面</span></div>
+          <div><b>3</b><span>登录后点击书签，直接读取全部余量</span></div>
         </div>
 
         <div class="bookmark-drop">
           <a class="bookmarklet big" href="${escapeHtml(href)}">${escapeHtml(modal.label)}</a>
           <div>
             <b>把左侧蓝色按钮拖到书签栏</b>
-            <p>如果浏览器没有显示书签栏，Chrome 可以按 Cmd+Shift+B。旧书签不会自动更新，改了课程或间隔后请重新拖一次。</p>
+            <p>如果浏览器没有显示书签栏，Chrome 可以按 Cmd+Shift+B。旧书签不会自动更新，改了刷新范围后请重新拖一次。</p>
           </div>
         </div>
 
@@ -524,7 +505,7 @@ function renderRefreshModal(modal) {
 
         <div class="modal-actions">
           <button id="copyBookmarklet" class="secondary">复制书签地址</button>
-          <button id="goSchool" class="primary-action">我已放好书签，跳转学校页面</button>
+          <button id="goSchool" class="primary-action">我已放好书签，跳转课程余量页</button>
         </div>
       </section>
     </div>
@@ -687,19 +668,6 @@ function bindEvents() {
   set("closeRefreshDialog", "click", closeRefreshDialog);
   set("copyBookmarklet", "click", copyPendingBookmarklet);
   set("goSchool", "click", goSchoolAfterBookmark);
-  set("modalDelayMs", "change", (event) => {
-    state.delayMs = Math.max(0, Number(event.target.value) || 0);
-    saveSettings();
-    render();
-  });
-
-  document.querySelectorAll(".modal-delay-preset").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.delayMs = Number(button.dataset.delay) || 300;
-      saveSettings();
-      render();
-    });
-  });
   document.querySelectorAll(".sort-btn").forEach((button) => {
     button.addEventListener("click", () => {
       const key = button.dataset.sort;
